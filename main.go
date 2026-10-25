@@ -69,12 +69,15 @@ func (p *program) pollLoop() {
 		cfg := p.getCfg()
 		jobs, err := p.getAPI().FetchJobs()
 		p.state.MarkPoll()
-		if err != nil {
-			logger.Warningf("gagal ambil job: %v", err)
-		}
 
-		for _, job := range jobs {
-			p.processJob(job, tempDir)
+		if err != nil {
+			// Server lagi error/tidak kebaca - jangan proses apa pun di
+			// putaran ini, tunggu interval berikutnya lalu coba lagi.
+			logger.Warningf("gagal ambil job, dilewati putaran ini: %v", err)
+		} else {
+			for _, job := range jobs {
+				p.processJob(job, cfg.AgentToken, tempDir)
+			}
 		}
 
 		jitter := time.Duration(rand.Intn(5)) * time.Second
@@ -83,12 +86,12 @@ func (p *program) pollLoop() {
 	}
 }
 
-func (p *program) processJob(job PrintJob, tempDir string) {
+func (p *program) processJob(job PrintJob, token string, tempDir string) {
 	api := p.getAPI()
 	_ = api.UpdateJobStatus(job.ID, "printing", "")
 	p.state.AddJobEvent(JobEvent{JobID: job.ID, Printer: job.PrinterName, Status: "printing"})
 
-	filePath, err := downloadFile(job.FileURL, tempDir, job.ID)
+	filePath, err := downloadFile(job.FileURL, tempDir, job.ID, token)
 	if err != nil {
 		logger.Errorf("job %d: gagal download: %v", job.ID, err)
 		_ = api.UpdateJobStatus(job.ID, "failed", err.Error())
