@@ -1,27 +1,44 @@
-name: Build MARSA Agent
+name: Build MARSA Agent Installer
 
 on:
-  push:
     branches: [ main ]
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
-
     - uses: actions/checkout@v4
 
     - uses: actions/setup-go@v5
       with:
         go-version: "1.24"
 
-    - run: go mod tidy
+    - name: Build agent.exe
+      run: |
+        go mod tidy
+        go build -ldflags="-s -w" -o installer/dist/agent.exe
 
-    - run: go build -ldflags="-s -w" -o agent.exe
+    - name: Download SumatraPDF portable
+      run: |
+        Invoke-WebRequest -Uri "https://www.sumatrapdfreader.org/dl/rel/3.5.2/SumatraPDF-3.5.2-64.zip" -OutFile sumatra.zip
+        Expand-Archive sumatra.zip -DestinationPath sumatra_extracted
+        Copy-Item sumatra_extracted\SumatraPDF-3.5.2-64.exe installer\dist\SumatraPDF.exe
+      shell: pwsh
+
+    - name: Siapkan config.json default
+      run: Copy-Item config.example.json installer\dist\config.json
+
+    - name: Install Inno Setup
+      run: choco install innosetup -y
+      shell: pwsh
+
+    - name: Compile installer
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\agent.iss
+      shell: pwsh
 
     - uses: actions/upload-artifact@v4
       with:
-        name: MARSA-Agent
-        path: agent.exe
+        name: MarsaPrintAgentSetup
+        path: installer/output/MarsaPrintAgentSetup.exe
