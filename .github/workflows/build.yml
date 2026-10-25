@@ -1,7 +1,6 @@
 name: Build MARSA Agent Installer
 
-on:
-    branches: [ main ]
+branches: [ main ]
 
 jobs:
   build:
