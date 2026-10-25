@@ -7,11 +7,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
 
-// downloadFile ambil file job dari server, simpan ke folder temp
+// downloadFile ambil file job dari server, simpan ke folder temp.
+// Pakai client dengan timeout supaya tidak nyangkut kalau server lemot.
 func downloadFile(url string, destDir string, jobID int) (string, error) {
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -35,10 +38,10 @@ func downloadFile(url string, destDir string, jobID int) (string, error) {
 }
 
 // printPDF kirim file PDF ke printer tertentu secara silent (tanpa dialog)
-// pakai SumatraPDF.exe (portable, gratis, bagus untuk automation cetak).
-// Taruh SumatraPDF.exe satu folder dengan agent.exe, atau set path lengkap.
-func printPDF(filePath string, printerName string, copies int) error {
-	sumatraPath := "SumatraPDF.exe" // bisa diganti path absolut kalau perlu
+// pakai SumatraPDF.exe. baseDir = folder tempat agent.exe berada (bukan CWD
+// saat ini, karena Windows Service biasanya start dari System32).
+func printPDF(filePath string, printerName string, copies int, baseDir string) error {
+	sumatraPath := filepath.Join(baseDir, "SumatraPDF.exe")
 
 	for i := 0; i < copies; i++ {
 		cmd := exec.Command(sumatraPath,
