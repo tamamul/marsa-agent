@@ -13,22 +13,75 @@ const dashboardHTML = `
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MARSA Print Agent</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 800px; margin: 30px auto; padding: 0 16px; color: #1a1a1a; }
-  h1 { font-size: 20px; }
-  .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-  .ok { color: #16a34a; font-weight: 600; }
-  .warn { color: #dc2626; font-weight: 600; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid #eee; }
-  .status-done { color: #16a34a; }
-  .status-failed { color: #dc2626; }
-  .status-printing { color: #d97706; }
-  input { width: 100%; padding: 6px; margin-bottom: 10px; box-sizing: border-box; }
-  button { padding: 8px 16px; background: #1a1a1a; color: white; border: none; border-radius: 6px; cursor: pointer; }
-  .msg { padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; }
-  .msg-ok { background: #dcfce7; color: #166534; }
+  :root {
+    --accent: #0078D4;
+    --bg: #F3F3F3;
+    --card-bg: rgba(255,255,255,0.7);
+    --text: #1A1A1A;
+    --text-dim: #5c5c5c;
+    --border: rgba(0,0,0,0.07);
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #202020;
+      --card-bg: rgba(255,255,255,0.05);
+      --text: #F3F3F3;
+      --text-dim: #b0b0b0;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    max-width: 760px; margin: 0 auto; padding: 32px 20px 60px;
+    color: var(--text);
+    background:
+      radial-gradient(1200px 500px at 10% -10%, rgba(0,120,212,0.12), transparent),
+      var(--bg);
+    min-height: 100vh;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 20px; display: flex; align-items: center; gap: 10px; }
+  .card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14px; font-weight: 600; margin: 0 0 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .03em; }
+  .ok { color: #0F9D58; font-weight: 600; }
+  .warn { color: #D13438; font-weight: 600; }
+  .meta { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td, th { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-dim); font-weight: 600; font-size: 12px; }
+  .status-done { color: #0F9D58; font-weight: 600; }
+  .status-failed { color: #D13438; font-weight: 600; }
+  .status-printing { color: #CA5010; font-weight: 600; }
+  label { display: block; font-size: 12px; color: var(--text-dim); margin: 10px 0 4px; }
+  input {
+    width: 100%; padding: 9px 10px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    font-size: 14px; outline: none;
+  }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,120,212,0.25); }
+  button {
+    margin-top: 16px; padding: 9px 20px; background: var(--accent); color: white;
+    border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
+  }
+  button:hover { background: #106EBE; }
+  .msg { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+  .msg-ok { background: rgba(15,157,88,0.12); color: #0F9D58; border: 1px solid rgba(15,157,88,0.25); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-ok { background: #0F9D58; }
+  .dot-warn { background: #D13438; }
 </style>
 </head>
 <body>
@@ -37,15 +90,15 @@ const dashboardHTML = `
 {{if .Saved}}<div class="msg msg-ok">Setting tersimpan. Diterapkan langsung tanpa perlu restart.</div>{{end}}
 
 <div class="card">
-  <strong>Status:</strong>
-  {{if .IsHealthy}}<span class="ok">● Berjalan normal</span>{{else}}<span class="warn">● Belum ada heartbeat terbaru</span>{{end}}
-  <br>Jalan sejak: {{.StartedAt}}
-  <br>Heartbeat terakhir: {{.LastHeartbeat}}
-  <br>Polling terakhir: {{.LastPoll}}
+  <h2>Status</h2>
+  {{if .IsHealthy}}<span class="dot dot-ok"></span><span class="ok">Berjalan normal</span>{{else}}<span class="dot dot-warn"></span><span class="warn">Belum ada heartbeat terbaru</span>{{end}}
+  <div class="meta">Jalan sejak {{.StartedAt}}</div>
+  <div class="meta">Heartbeat terakhir: {{.LastHeartbeat}}</div>
+  <div class="meta">Polling terakhir: {{.LastPoll}}</div>
 </div>
 
 <div class="card">
-  <strong>Riwayat Job Terakhir</strong>
+  <h2>Riwayat Job Terakhir</h2>
   <table>
     <tr><th>Waktu</th><th>Job</th><th>Printer</th><th>Status</th><th>Keterangan</th></tr>
     {{range .RecentJobs}}
@@ -63,7 +116,7 @@ const dashboardHTML = `
 </div>
 
 <div class="card">
-  <strong>Setting</strong>
+  <h2>Setting</h2>
   <form method="POST" action="/settings">
     <label>URL Server</label>
     <input type="text" name="server_url" value="{{.Cfg.ServerURL}}">
