@@ -5,13 +5,13 @@ import (
 	"os"
 )
 
-// Config disimpan di file config.json di folder yang sama dengan .exe
-// Supaya token tidak hardcode di dalam binary.
+// Config disimpan di file config.json satu folder dengan agent.exe
 type Config struct {
-	ServerURL       string `json:"server_url"`        // contoh: https://print.marsa9.com
-	AgentToken      string `json:"agent_token"`       // didapat saat register manual di dashboard
-	PollIntervalSec int    `json:"poll_interval_sec"` // default 20-30 detik
-	HeartbeatSec    int    `json:"heartbeat_sec"`     // default 60 detik
+	ServerURL       string `json:"server_url"`
+	AgentToken      string `json:"agent_token"`
+	PollIntervalSec int    `json:"poll_interval_sec"`
+	HeartbeatSec    int    `json:"heartbeat_sec"`
+	DashboardPort   int    `json:"dashboard_port"` // port web dashboard lokal, default 9191
 }
 
 func loadConfig(path string) (*Config, error) {
@@ -23,12 +23,27 @@ func loadConfig(path string) (*Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	// Fallback default kalau nilai kosong/nol
+	applyDefaults(&cfg)
+	return &cfg, nil
+}
+
+func applyDefaults(cfg *Config) {
 	if cfg.PollIntervalSec == 0 {
 		cfg.PollIntervalSec = 20
 	}
 	if cfg.HeartbeatSec == 0 {
 		cfg.HeartbeatSec = 60
 	}
-	return &cfg, nil
+	if cfg.DashboardPort == 0 {
+		cfg.DashboardPort = 9191
+	}
+}
+
+// Save nulis ulang config.json, dipanggil saat user ubah setting lewat dashboard web
+func (c *Config) Save(path string) error {
+	data, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0644)
 }
