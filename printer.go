@@ -12,9 +12,17 @@ import (
 
 // downloadFile ambil file job dari server, simpan ke folder temp.
 // Pakai client dengan timeout supaya tidak nyangkut kalau server lemot.
-func downloadFile(url string, destDir string, jobID int) (string, error) {
+// Endpoint file butuh token juga (sama seperti endpoint lain), jadi wajib
+// dikirim lewat header Authorization, bukan cuma GET polos.
+func downloadFile(url string, destDir string, jobID int, token string) (string, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
 	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(url)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
