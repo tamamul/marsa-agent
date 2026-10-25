@@ -2,5 +2,6 @@
   "server_url": "https://print.marsa9.com",
   "agent_token": "isi-dengan-token-dari-dashboard",
   "poll_interval_sec": 20,
-  "heartbeat_sec": 60
+  "heartbeat_sec": 60,
+  "dashboard_port": 9191
 }
