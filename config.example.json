@@ -1,5 +1,5 @@
 {
-  "server_url": "https://print.marsa9.com",
+  "server_url": "https://chat.marsa9.com/printserver-ci4/public/",
   "agent_token": "isi-dengan-token-dari-dashboard",
   "poll_interval_sec": 20,
   "heartbeat_sec": 60,
