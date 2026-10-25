@@ -2,64 +2,50 @@ name: Build MARSA Agent Installer
 
 on:
   workflow_dispatch:
-  
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
+    - uses: actions/setup-go@v5
+      with:
+        go-version: "1.24"
 
-      - name: Prepare dist directory
-        run: New-Item -ItemType Directory -Force installer/dist | Out-Null
-        shell: pwsh
+    - name: Build agent.exe (service)
+      run: |
+        go mod tidy
+        go build -ldflags="-s -w" -o installer/dist/agent.exe
 
-      - name: Build agent.exe
-        run: |
-          go mod tidy
-          go build -ldflags="-s -w" -o installer/dist/agent.exe .
-        shell: pwsh
+    - name: Build tray.exe (ikon tray Windows 11)
+      run: |
+        cd tray
+        go mod tidy
+        go build -ldflags="-s -w -H windowsgui" -o ../installer/dist/tray.exe
+      shell: pwsh
 
-      - name: Download SumatraPDF portable
-        run: |
-          Invoke-WebRequest `
-            -Uri "https://www.sumatrapdfreader.org/dl/rel/3.5.2/SumatraPDF-3.5.2-64.zip" `
-            -OutFile sumatra.zip
+    - name: Download SumatraPDF portable
+      run: |
+        Invoke-WebRequest -Uri "https://www.sumatrapdfreader.org/dl/rel/3.5.2/SumatraPDF-3.5.2-64.zip" -OutFile sumatra.zip
+        Expand-Archive sumatra.zip -DestinationPath sumatra_extracted
+        Copy-Item sumatra_extracted\SumatraPDF-3.5.2-64.exe installer\dist\SumatraPDF.exe
+      shell: pwsh
 
-          Expand-Archive sumatra.zip -DestinationPath sumatra_extracted -Force
+    - name: Siapkan config.json default
+      run: Copy-Item config.example.json installer\dist\config.json
 
-          Copy-Item `
-            sumatra_extracted\SumatraPDF-3.5.2-64.exe `
-            installer\dist\SumatraPDF.exe
-        shell: pwsh
+    - name: Install Inno Setup
+      run: choco install innosetup -y
+      shell: pwsh
 
-      - name: Prepare default config
-        run: Copy-Item config.example.json installer/dist/config.json
-        shell: pwsh
+    - name: Compile installer
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\agent.iss
+      shell: pwsh
 
-      - name: Install Inno Setup
-        run: choco install innosetup -y --no-progress
-        shell: pwsh
-
-      - name: Compile installer
-        run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\agent.iss
-          if ($LASTEXITCODE -ne 0) {
-            throw "Compile installer gagal!"
-          }
-        shell: pwsh
-
-      - name: Upload installer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: MarsaPrintAgentSetup
-          path: installer/output/MarsaPrintAgentSetup.exe
-          if-no-files-found: error
-          retention-days: 14
+    - uses: actions/upload-artifact@v4
+      with:
+        name: MarsaPrintAgentSetup
+        path: installer/output/MarsaPrintAgentSetup.exe
