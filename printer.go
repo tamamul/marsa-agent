@@ -35,22 +35,6 @@ func printPDF(filePath string, printerName string, copies int, pageRange string,
 }
 
 
-func printPDF(filePath string, printerName string, copies int, baseDir string) error {
-	sumatraPath := filepath.Join(baseDir, "SumatraPDF.exe")
-
-	for i := 0; i < copies; i++ {
-		cmd := exec.Command(sumatraPath,
-			"-print-to", printerName,
-			"-silent",
-			filePath,
-		)
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("gagal print copy ke-%d: %w", i+1, err)
-		}
-	}
-	return nil
-}
-
 // cleanupFile hapus file job setelah selesai dicetak (jaga privasi + hemat disk)
 func cleanupFile(path string) {
 	_ = os.Remove(path)
