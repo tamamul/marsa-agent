@@ -53,6 +53,7 @@ type PrintJob struct {
 	PrinterName string `json:"printer_name"` // nama printer persis sesuai driver Windows
 	FileURL     string `json:"file_url"`     // link download file (idealnya sudah PDF)
 	Copies      int    `json:"copies"`
+	PageRange   string `json:"page_range"`
 }
 
 // Heartbeat lapor "masih hidup" ke server
