@@ -54,8 +54,7 @@ func (p *program) run() {
 	p.pollLoop()
 }
 
-// pollLoop cek job baru tiap N detik + jitter kecil biar tidak barengan
-// dengan agent lain saat request ke server
+
 func (p *program) pollLoop() {
 	tempDir := os.TempDir()
 
@@ -71,8 +70,7 @@ func (p *program) pollLoop() {
 		p.state.MarkPoll()
 
 		if err != nil {
-			// Server lagi error/tidak kebaca - jangan proses apa pun di
-			// putaran ini, tunggu interval berikutnya lalu coba lagi.
+			
 			logger.Warningf("gagal ambil job, dilewati putaran ini: %v", err)
 		} else {
 			for _, job := range jobs {
@@ -100,7 +98,7 @@ func (p *program) processJob(job PrintJob, token string, tempDir string) {
 	}
 	defer cleanupFile(filePath)
 
-	if err := printPDF(filePath, job.PrinterName, job.Copies, p.baseDir); err != nil {
+	if err := printPDF(filePath, job.PrinterName, job.Copies, job.PageRange, p.baseDir); err != nil {
 		logger.Errorf("job %d: gagal print: %v", job.ID, err)
 		_ = api.UpdateJobStatus(job.ID, "failed", err.Error())
 		p.state.AddJobEvent(JobEvent{JobID: job.ID, Printer: job.PrinterName, Status: "failed", Message: "gagal print: " + err.Error()})
@@ -112,8 +110,6 @@ func (p *program) processJob(job PrintJob, token string, tempDir string) {
 	logger.Infof("job %d selesai dicetak ke %s", job.ID, job.PrinterName)
 }
 
-// heartbeatLoop lapor "masih hidup" secara terpisah dari polling job,
-// intervalnya lebih santai (default 60 detik)
 func (p *program) heartbeatLoop() {
 	for {
 		cfg := p.getCfg()
@@ -131,10 +127,7 @@ func (p *program) heartbeatLoop() {
 }
 
 func main() {
-	// Deteksi folder tempat agent.exe berada - PENTING karena saat jalan
-	// sebagai Windows Service, working directory default-nya System32,
-	// bukan folder agent.exe. Semua path (config.json, SumatraPDF.exe)
-	// harus relatif ke sini, bukan ke CWD.
+	
 	exePath, err := os.Executable()
 	if err != nil {
 		log.Fatalf("gagal deteksi lokasi exe: %v", err)
